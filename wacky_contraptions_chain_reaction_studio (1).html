@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wacky Contraptions - Chain-Reaction Physics Studio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@600;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        .heading-font {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-3d {
+            transition: all 0.1s ease;
+            box-shadow: 0 5px 0 #0d9488, 0 8px 15px rgba(0,0,0,0.4);
+        }
+        .btn-3d:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 0 #0d9488, 0 10px 20px rgba(0,0,0,0.5);
+        }
+        .btn-3d:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #0d9488, 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .btn-play {
+            box-shadow: 0 5px 0 #15803d, 0 8px 15px rgba(0,0,0,0.4);
+        }
+        .btn-play:hover { box-shadow: 0 7px 0 #15803d; }
+        .btn-play:active { box-shadow: 0 2px 0 #15803d; }
+
+        .btn-reset {
+            box-shadow: 0 5px 0 #b91c1c, 0 8px 15px rgba(0,0,0,0.4);
+        }
+        .btn-reset:hover { box-shadow: 0 7px 0 #b91c1c; }
+        .btn-reset:active { box-shadow: 0 2px 0 #b91c1c; }
+
+        .part-card {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .part-card:hover {
+            transform: scale(1.05) translateY(-2px);
+        }
+
+        canvas {
+            cursor: crosshair;
+            background-color: #1e293b;
+            background-image: 
+                radial-gradient(rgba(255, 255, 255, 0.15) 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 8px rgba(20, 184, 166, 0.6)); }
+            50% { filter: drop-shadow(0 0 20px rgba(20, 184, 166, 0.9)); }
+        }
+        .animate-glow { animation: pulse-glow 2s infinite ease-in-out; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-2 sm:p-4 text-slate-100">
+
+    <!-- HEADER NAVBAR -->
+    <header class="max-w-7xl w-full mx-auto flex flex-wrap items-center justify-between gap-3 bg-slate-900/90 p-3 sm:p-4 rounded-2xl border border-slate-700/60 shadow-2xl mb-3">
+        <div class="flex items-center space-x-3">
+            <div class="w-11 h-11 bg-teal-400 rounded-xl flex items-center justify-center text-slate-950 text-2xl shadow-lg transform -rotate-6 animate-glow">
+                <i class="fa-solid fa-gears"></i>
+            </div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black text-teal-300 heading-font tracking-wide">WACKY CONTRAPTIONS</h1>
+                <p class="text-xs text-slate-400 font-semibold">Chain-Reaction Physics Studio (Ages 8–10)</p>
+            </div>
+        </div>
+
+        <!-- LEVEL TABS & MODES -->
+        <div class="flex items-center space-x-1 sm:space-x-2 bg-slate-800 p-1.5 rounded-xl border border-slate-700">
+            <button onclick="selectLevel(0)" id="lvl-btn-0" class="lvl-tab px-3 py-1.5 rounded-lg text-xs font-bold transition bg-teal-500 text-slate-950">
+                🎈 Lvl 1: Balloon Pop
+            </button>
+            <button onclick="selectLevel(1)" id="lvl-btn-1" class="lvl-tab px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">
+                🦖 Lvl 2: Feed Dino
+            </button>
+            <button onclick="selectLevel(2)" id="lvl-btn-2" class="lvl-tab px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">
+                🔔 Lvl 3: Cosmic Bell
+            </button>
+            <button onclick="selectLevel(3)" id="lvl-btn-3" class="lvl-tab px-3 py-1.5 rounded-lg text-xs font-bold transition text-amber-400 hover:text-amber-300">
+                🧪 Free Sandbox
+            </button>
+        </div>
+
+        <!-- CONTROLS & SOUND -->
+        <div class="flex items-center space-x-2">
+            <button id="sound-btn" onclick="toggleSound()" class="bg-slate-800 hover:bg-slate-700 text-teal-300 px-3 py-2 rounded-xl border border-slate-700 font-bold text-xs flex items-center space-x-1.5">
+                <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                <span id="sound-text" class="hidden sm:inline">Sound ON</span>
+            </button>
+            <button onclick="resetLevel()" class="btn-3d btn-reset bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-3 py-2 rounded-xl border border-red-400">
+                <i class="fa-solid fa-rotate-left mr-1"></i> Clear Parts
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN GAME ARENA -->
+    <main class="max-w-7xl w-full mx-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+        
+        <!-- LEFT TOOLBOX (PALETTE OF CONTRAPTION PARTS) -->
+        <aside class="lg:col-span-3 glass-card p-3 sm:p-4 rounded-2xl flex flex-col justify-between space-y-3">
+            <div>
+                <div class="flex items-center justify-between mb-3 border-b border-slate-700/80 pb-2">
+                    <span class="text-xs font-extrabold uppercase tracking-widest text-teal-400 flex items-center gap-2">
+                        <i class="fa-solid fa-box-open"></i> Parts Toolbox
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-bold">Click part to add</span>
+                </div>
+
+                <!-- PARTS LIST -->
+                <div class="grid grid-cols-2 gap-2 max-h-[460px] overflow-y-auto pr-1">
+                    
+                    <div onclick="addPartToCanvas('ramp')" class="part-card bg-slate-800 hover:bg-slate-700/80 p-2.5 rounded-xl border border-slate-700 cursor-pointer flex flex-col items-center text-center">
+                        <span class="text-2xl mb-1">📐</span>
+                        <span class="text-xs font-extrabold text-slate-200">Wooden Ramp</span>
+                        <span class="text-[10px] text-slate-400">Guides ball smooth</span>
+                    </div>
+
+                    <div onclick="addPartToCanvas('trampoline')" class="part-card bg-slate-800 hover:bg-slate-700/80 p-2.5 rounded-xl border border-slate-700 cursor-pointer flex flex-col items-center text-center">
+                        <span class="text-2xl mb-1">🌀</span>
+                        <span class="text-xs font-extrabold text-slate-200">Trampoline</span>
+                        <span class="text-[10px] text-slate-400">Super bounce boost!</span>
+                    </div>
+
+                    <div onclick="addPartToCanvas('fan')" class="part-card bg-slate-800 hover:bg-slate-700/80 p-2.5 rounded-xl border border-slate-700 cursor-pointer flex flex-col items-center text-center">
+                        <span class="text-2xl mb-1">🪭</span>
+                        <span class="text-xs font-extrabold text-slate-200">Wind Fan</span>
+                        <span class="text-[10px] text-slate-400">Pushes ball horizontally</span>
+                    </div>
+
+                    <div onclick="addPartToCanvas('magnet')" class="part-card bg-slate-800 hover:bg-slate-700/80 p-2.5 rounded-xl border border-slate-700 cursor-pointer flex flex-col items-center text-center">
+                        <span class="text-2xl mb-1">🧲</span>
+                        <span class="text-xs font-extrabold text-slate-200">Magnet</span>
+                        <span class="text-[10px] text-slate-400">Attracts metallic ball</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- INSTRUCTIONS & SELECTED PART CONTROLS -->
+            <div id="selection-panel" class="bg-slate-900/90 p-3 rounded-xl border border-slate-700 text-xs">
+                <div class="text-slate-400 font-bold mb-1 flex justify-between items-center">
+                    <span>SELECTED ITEM CONTROLS</span>
+                    <button onclick="deleteSelectedPart()" class="text-red-400 hover:text-red-300 text-xs"><i class="fa-solid fa-trash"></i> Delete</button>
+                </div>
+                <div class="flex gap-2 mt-2">
+                    <button onclick="rotateSelectedPart(-15)" class="flex-1 bg-slate-800 hover:bg-slate-700 p-2 rounded-lg font-bold text-slate-200 border border-slate-700 flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-rotate-left"></i> -15°
+                    </button>
+                    <button onclick="rotateSelectedPart(15)" class="flex-1 bg-slate-800 hover:bg-slate-700 p-2 rounded-lg font-bold text-slate-200 border border-slate-700 flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-rotate-right"></i> +15°
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CENTER PHYSICS CANVAS WORKBENCH -->
+        <section class="lg:col-span-9 flex flex-col space-y-3">
+            
+            <!-- MISSION OBJECTIVE BAR -->
+            <div class="glass-card p-3 rounded-2xl flex items-center justify-between border-l-4 border-l-teal-400">
+                <div class="flex items-center space-x-3">
+                    <span id="mission-icon" class="text-3xl">🎈</span>
+                    <div>
+                        <h2 id="mission-title" class="text-base font-extrabold text-teal-300 heading-font">Mission 1: Pop the Balloon!</h2>
+                        <p id="mission-desc" class="text-xs text-slate-300 font-medium">Build a ramp or bouncy path to guide the metal ball into the target balloon!</p>
+                    </div>
+                </div>
+
+                <!-- SIMULATION RUN CONTROLS -->
+                <div class="flex items-center space-x-2">
+                    <button id="btn-run" onclick="toggleSimulation()" class="btn-3d btn-play bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-base px-6 py-2.5 rounded-xl border-2 border-emerald-300 flex items-center gap-2">
+                        <i id="run-icon" class="fa-solid fa-play text-lg"></i>
+                        <span id="run-text">TEST RUN!</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- INTERACTIVE CANVAS -->
+            <div class="relative flex-1 bg-slate-900 rounded-2xl border-2 border-slate-700/80 shadow-2xl overflow-hidden min-h-[460px]">
+                <canvas id="physics-canvas" class="w-full h-full block"></canvas>
+
+                <!-- WATERMARK TIP -->
+                <div id="canvas-tip" class="pointer-events-none absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur px-3 py-1.5 rounded-xl border border-slate-700 text-[11px] text-slate-400 font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-hand-pointer text-teal-400"></i> Drag items to position them • Click to select & rotate
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        /* WEB AUDIO SYNTHESIZER FOR SOUND EFFECTS */
+        class AudioSynth {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playBounce() {
+                if (this.muted) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.1);
+            }
+
+            playPop() {
+                if (this.muted) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+
+            playClack() {
+                if (this.muted) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.05);
+            }
+
+            playPortal() {
+                if (this.muted) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(1200, this.ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            }
+
+            playVictory() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.2);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.2);
+                });
+            }
+        }
+
+        const audio = new AudioSynth();
+
+        function toggleSound() {
+            audio.muted = !audio.muted;
+            document.getElementById('sound-text').innerText = audio.muted ? 'Sound OFF' : 'Sound ON';
+            document.getElementById('sound-icon').className = audio.muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+        }
+
+        const LEVELS = [
+            {
+                id: 0,
+                title: "Mission 1: Pop the Balloon!",
+                icon: "🎈",
+                desc: "Guide the ball down using ramps or trampolines to pop the party balloon!",
+                spawn: { x: 100, y: 120 },
+                target: { type: "balloon", x: 620, y: 380, radius: 32 }
+            },
+            {
+                id: 1,
+                title: "Mission 2: Feed Hungry Dino!",
+                icon: "🦖",
+                desc: "Bounce or push the meatball across the gap into Dino's open mouth!",
+                spawn: { x: 120, y: 100 },
+                target: { type: "dino", x: 650, y: 320, radius: 45 }
+            },
+            {
+                id: 2,
+                title: "Mission 3: Cosmic Bell Ring!",
+                icon: "🔔",
+                desc: "Create a clever multi-step chain reaction using ramps, trampolines, fans, or magnets to ring the bell!",
+                spawn: { x: 90, y: 100 },
+                target: { type: "bell", x: 680, y: 200, radius: 35 }
+            },
+            {
+                id: 3,
+                title: "Free Physics Sandbox",
+                icon: "🧪",
+                desc: "No strict goals! Experiment freely with all parts, physics, and contraption designs.",
+                spawn: { x: 100, y: 120 },
+                target: { type: "balloon", x: 680, y: 380, radius: 35 }
+            }
+        ];
+
+        /* CANVAS & SIMULATION STATE VARIABLES */
+        let currentLevelIdx = 0;
+        let isSimulating = false;
+        let canvas, ctx;
+
+        // Ball State
+        let ball = {
+            x: 100, y: 120,
+            vx: 0, vy: 0,
+            radius: 14,
+            isMetallic: true
+        };
+
+        // User Placed Parts
+        let placedParts = [];
+        let selectedPartIndex = -1;
+        let draggedPartIndex = -1;
+        let dragOffsetX = 0, dragOffsetY = 0;
+
+        function initCanvas() {
+            canvas = document.getElementById('physics-canvas');
+            ctx = canvas.getContext('2d');
+
+            function resize() {
+                const rect = canvas.parentElement.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                resetBall();
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            // Pointer event handlers
+            canvas.addEventListener('mousedown', handlePointerDown);
+            canvas.addEventListener('mousemove', handlePointerMove);
+            canvas.addEventListener('mouseup', handlePointerUp);
+
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                handlePointerDown(e.touches[0]);
+            });
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                handlePointerMove(e.touches[0]);
+            });
+            canvas.addEventListener('touchend', handlePointerUp);
+
+            // Start animation loop
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resetBall() {
+            const level = LEVELS[currentLevelIdx];
+            ball.x = level.spawn.x;
+            ball.y = level.spawn.y;
+            ball.vx = 0;
+            ball.vy = 0;
+        }
+
+        function selectLevel(idx) {
+            currentLevelIdx = idx;
+            isSimulating = false;
+
+            // Update tab UI
+            document.querySelectorAll('.lvl-tab').forEach((tab, i) => {
+                if (i === idx) {
+                    tab.className = "lvl-tab px-3 py-1.5 rounded-lg text-xs font-bold transition bg-teal-500 text-slate-950 shadow";
+                } else {
+                    tab.className = "lvl-tab px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white";
+                }
+            });
+
+            // Update Mission HUD
+            const level = LEVELS[idx];
+            document.getElementById('mission-icon').innerText = level.icon;
+            document.getElementById('mission-title').innerText = level.title;
+            document.getElementById('mission-desc').innerText = level.desc;
+
+            // Update play button
+            document.getElementById('run-text').innerText = "TEST RUN!";
+            document.getElementById('run-icon').className = "fa-solid fa-play text-lg";
+
+            resetBall();
+        }
+
+        function resetLevel() {
+            placedParts = [];
+            selectedPartIndex = -1;
+            isSimulating = false;
+            resetBall();
+            document.getElementById('run-text').innerText = "TEST RUN!";
+            document.getElementById('run-icon').className = "fa-solid fa-play text-lg";
+        }
+
+        function addPartToCanvas(type) {
+            audio.playBounce();
+            const part = {
+                id: Date.now(),
+                type: type,
+                x: canvas.width / 2 + (Math.random() * 40 - 20),
+                y: canvas.height / 2 + (Math.random() * 40 - 20),
+                rotation: 0, // in degrees
+                width: 100,
+                height: 20
+            };
+
+            if (type === 'trampoline') { part.width = 90; part.height = 24; }
+            if (type === 'fan') { part.width = 70; part.height = 70; }
+            if (type === 'magnet') { part.width = 60; part.height = 60; }
+
+            placedParts.push(part);
+            selectedPartIndex = placedParts.length - 1;
+        }
+
+        function rotateSelectedPart(deg) {
+            if (selectedPartIndex >= 0 && selectedPartIndex < placedParts.length) {
+                audio.playClack();
+                placedParts[selectedPartIndex].rotation = (placedParts[selectedPartIndex].rotation + deg) % 360;
+            }
+        }
+
+        function deleteSelectedPart() {
+            if (selectedPartIndex >= 0 && selectedPartIndex < placedParts.length) {
+                audio.playClack();
+                placedParts.splice(selectedPartIndex, 1);
+                selectedPartIndex = -1;
+            }
+        }
+
+        function handlePointerDown(e) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            selectedPartIndex = -1;
+
+            for (let i = placedParts.length - 1; i >= 0; i--) {
+                const p = placedParts[i];
+                const dx = mouseX - p.x;
+                const dy = mouseY - p.y;
+                
+                if (Math.abs(dx) < p.width / 2 + 10 && Math.abs(dy) < p.height / 2 + 10) {
+                    draggedPartIndex = i;
+                    selectedPartIndex = i;
+                    dragOffsetX = dx;
+                    dragOffsetY = dy;
+                    audio.playClack();
+                    break;
+                }
+            }
+        }
+
+        function handlePointerMove(e) {
+            if (draggedPartIndex >= 0 && !isSimulating) {
+                const rect = canvas.getBoundingClientRect();
+                placedParts[draggedPartIndex].x = e.clientX - rect.left - dragOffsetX;
+                placedParts[draggedPartIndex].y = e.clientY - rect.top - dragOffsetY;
+            }
+        }
+
+        function handlePointerUp() {
+            draggedPartIndex = -1;
+        }
+
+        function toggleSimulation() {
+            isSimulating = !isSimulating;
+            const btnText = document.getElementById('run-text');
+            const btnIcon = document.getElementById('run-icon');
+
+            if (isSimulating) {
+                audio.playBounce();
+                btnText.innerText = "RESET POSITION";
+                btnIcon.className = "fa-solid fa-rotate-left text-lg";
+            } else {
+                resetBall();
+                btnText.innerText = "TEST RUN!";
+                btnIcon.className = "fa-solid fa-play text-lg";
+            }
+        }
+
+        function updatePhysics() {
+            if (!isSimulating) return;
+
+            // Apply Gravity
+            ball.vy += 0.35;
+
+            // Apply Velocity
+            ball.x += ball.vx;
+            ball.y += ball.vy;
+
+            // Air Friction
+            ball.vx *= 0.99;
+            ball.vy *= 0.99;
+
+            // Screen Canvas Collisions
+            if (ball.x - ball.radius < 0) { ball.x = ball.radius; ball.vx *= -0.7; }
+            if (ball.x + ball.radius > canvas.width) { ball.x = canvas.width - ball.radius; ball.vx *= -0.7; }
+            if (ball.y + ball.radius > canvas.height - 10) { 
+                ball.y = canvas.height - 10 - ball.radius; 
+                ball.vy *= -0.5;
+                ball.vx *= 0.9;
+            }
+
+            // Collisions with Placed Contraption Parts
+            placedParts.forEach(p => {
+                const rad = (p.rotation * Math.PI) / 180;
+                
+                // Transform ball into local space of the part
+                const dx = ball.x - p.x;
+                const dy = ball.y - p.y;
+                const localX = dx * Math.cos(-rad) - dy * Math.sin(-rad);
+                const localY = dx * Math.sin(-rad) + dy * Math.cos(-rad);
+
+                const halfW = p.width / 2;
+                const halfH = p.height / 2;
+
+                // Simple AABB test in rotated local space
+                if (Math.abs(localX) < halfW + ball.radius && Math.abs(localY) < halfH + ball.radius) {
+
+                    if (p.type === 'ramp') {
+                        audio.playBounce();
+                        // Push ball out of surface along local Y
+                        if (localY < 0) {
+                            ball.y = p.y - halfH * Math.cos(rad) - ball.radius;
+                            ball.vy *= -0.6;
+                            ball.vx += Math.sin(rad) * 1.5;
+                        }
+                    } else if (p.type === 'trampoline') {
+                        audio.playBounce();
+                        // Extra bouncy force
+                        ball.vy = -12 * Math.cos(rad);
+                        ball.vx += 8 * Math.sin(rad);
+                    } else if (p.type === 'fan') {
+                        // Apply wind vector towards rotation direction
+                        const windForce = 0.6;
+                        ball.vx += Math.cos(rad) * windForce;
+                        ball.vy += Math.sin(rad) * windForce;
+                    } else if (p.type === 'magnet') {
+                        // Magnetic pull
+                        const magForce = 0.8;
+                        ball.vx -= Math.sign(dx) * magForce;
+                        ball.vy -= Math.sign(dy) * magForce;
+                    }
+                }
+            });
+
+            // Target Goal Collision Check
+            const target = LEVELS[currentLevelIdx].target;
+            const distToTarget = Math.hypot(ball.x - target.x, ball.y - target.y);
+
+            if (distToTarget < ball.radius + target.radius) {
+                triggerVictory();
+            }
+        }
+
+        function triggerVictory() {
+            isSimulating = false;
+            audio.playVictory();
+            confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 } });
+
+            setTimeout(() => {
+                if (currentLevelIdx < LEVELS.length - 1) {
+                    selectLevel(currentLevelIdx + 1);
+                } else {
+                    resetBall();
+                }
+            }, 1800);
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const level = LEVELS[currentLevelIdx];
+
+            // 1. Draw Spawn Point
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.arc(level.spawn.x, level.spawn.y, 22, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('START', level.spawn.x, level.spawn.y + 4);
+
+            // 2. Draw Target Objective
+            const t = level.target;
+            ctx.save();
+            ctx.translate(t.x, t.y);
+
+            if (t.type === 'balloon') {
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.arc(0, 0, t.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '28px sans-serif';
+                ctx.fillText('🎈', -14, 10);
+            } else if (t.type === 'dino') {
+                ctx.fillStyle = '#10b981';
+                ctx.beginPath();
+                ctx.arc(0, 0, t.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '36px sans-serif';
+                ctx.fillText('🦖', -18, 12);
+            } else if (t.type === 'bell') {
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.arc(0, 0, t.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '28px sans-serif';
+                ctx.fillText('🔔', -14, 10);
+            }
+            ctx.restore();
+
+            // 3. Draw Placed Parts
+            placedParts.forEach((p, idx) => {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate((p.rotation * Math.PI) / 180);
+
+                // Highlight Selection
+                if (idx === selectedPartIndex) {
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(-p.width/2 - 4, -p.height/2 - 4, p.width + 8, p.height + 8);
+                }
+
+                if (p.type === 'ramp') {
+                    ctx.fillStyle = '#b45309';
+                    ctx.fillRect(-p.width/2, -p.height/2, p.width, p.height);
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillRect(-p.width/2, -p.height/2, p.width, 4);
+                } else if (p.type === 'trampoline') {
+                    ctx.fillStyle = '#6366f1';
+                    ctx.fillRect(-p.width/2, 0, p.width, p.height/2);
+                    ctx.fillStyle = '#a855f7';
+                    ctx.beginPath();
+                    ctx.arc(0, -5, p.width/2, Math.PI, 0);
+                    ctx.fill();
+                } else if (p.type === 'fan') {
+                    ctx.fillStyle = '#334155';
+                    ctx.fillRect(-p.width/2, -p.height/2, p.width, p.height);
+                    ctx.font = '32px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🪭', 0, 10);
+                } else if (p.type === 'magnet') {
+                    ctx.font = '36px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🧲', 0, 12);
+                }
+
+                ctx.restore();
+            });
+
+            // 4. Draw Ball
+            ctx.save();
+            ctx.fillStyle = '#94a3b8';
+            ctx.shadowColor = '#38bdf8';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        /* MAIN GAME ANIMATION LOOP */
+        function gameLoop() {
+            updatePhysics();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.onload = function() {
+            initCanvas();
+        };
+    </script>
+</body>
+</html>
